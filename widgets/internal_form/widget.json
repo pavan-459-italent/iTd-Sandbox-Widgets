@@ -1,0 +1,10 @@
+{
+  "version": "1.0.0",
+  "title": "Internal Form",
+  "description": "An admin-only internal note form with text and image attachments.",
+  "category": "Demo",
+  "source": {
+    "path": "dist",
+    "entry": "content.html"
+  }
+}

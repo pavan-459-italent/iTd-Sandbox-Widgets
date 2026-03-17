@@ -1,0 +1,237 @@
+<style>
+  .internal-form-widget {
+    box-sizing: border-box;
+    width: 350px;
+    height: 400px;
+    padding: 18px;
+    border: 1px solid #d9e1ec;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+    box-shadow: 0 10px 24px rgba(17, 38, 78, 0.06);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #173057;
+  }
+
+  .internal-form-widget[hidden] {
+    display: none !important;
+  }
+
+  .internal-form-header {
+    margin-bottom: 14px;
+  }
+
+  .internal-form-title {
+    margin: 0;
+    font-size: 17px;
+    line-height: 1.2;
+    font-weight: 700;
+    color: #173057;
+  }
+
+  .internal-form-subtitle {
+    margin: 6px 0 0;
+    font-size: 12px;
+    line-height: 1.45;
+    color: #667791;
+  }
+
+  .internal-form-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: calc(100% - 64px);
+  }
+
+  .internal-form-label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #344866;
+  }
+
+  .internal-form-textarea,
+  .internal-form-file {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #cfd8e6;
+    border-radius: 10px;
+    background: #ffffff;
+  }
+
+  .internal-form-textarea {
+    min-height: 148px;
+    max-height: 148px;
+    padding: 12px 13px;
+    resize: none;
+    font: inherit;
+    color: #173057;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .internal-form-textarea:focus,
+  .internal-form-file:focus-within {
+    border-color: #6c8fcb;
+    box-shadow: 0 0 0 3px rgba(83, 121, 191, 0.14);
+  }
+
+  .internal-form-textarea::placeholder {
+    color: #8a9ab0;
+  }
+
+  .internal-form-file {
+    padding: 10px 12px;
+  }
+
+  .internal-form-file input {
+    width: 100%;
+    font: inherit;
+    color: #566882;
+  }
+
+  .internal-form-help {
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.4;
+    color: #7b8ca4;
+  }
+
+  .internal-form-preview {
+    display: flex;
+    gap: 8px;
+    min-height: 54px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .internal-form-preview:empty::before {
+    content: "Selected images will appear here.";
+    font-size: 11px;
+    color: #8a9ab0;
+    align-self: center;
+  }
+
+  .internal-form-thumb {
+    width: 54px;
+    height: 54px;
+    flex: 0 0 auto;
+    border-radius: 10px;
+    object-fit: cover;
+    border: 1px solid #d9e1ec;
+    background: #f6f8fb;
+  }
+
+  .internal-form-submit {
+    margin-top: auto;
+    width: 100%;
+    border: 0;
+    border-radius: 10px;
+    padding: 11px 14px;
+    background: #9f1c13;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+  }
+
+  .internal-form-submit:hover {
+    background: #84150d;
+    transform: translateY(-1px);
+  }
+
+  .internal-form-submit:active {
+    transform: translateY(0);
+  }
+</style>
+
+<div class="internal-form-widget" data-role-gate hidden>
+  <div class="internal-form-header">
+    <h3 class="internal-form-title">Internal form</h3>
+    <p class="internal-form-subtitle">
+      Admin-only note entry for quick internal updates.
+    </p>
+  </div>
+
+  <form class="internal-form-body">
+    <div>
+      <label class="internal-form-label" for="internal-form-text">Message</label>
+      <textarea
+        id="internal-form-text"
+        class="internal-form-textarea"
+        placeholder="Write internal notes here. Symbols, punctuation, and special characters are supported."
+      ></textarea>
+    </div>
+
+    <div>
+      <label class="internal-form-label" for="internal-form-images">Attach images</label>
+      <div class="internal-form-file">
+        <input id="internal-form-images" type="file" accept="image/*" multiple />
+      </div>
+      <p class="internal-form-help">Optional. PNG, JPG, GIF, WEBP and other browser-supported image files.</p>
+    </div>
+
+    <div class="internal-form-preview" aria-live="polite"></div>
+
+    <button class="internal-form-submit" type="submit">Submit</button>
+  </form>
+</div>
+
+<script>
+  (function () {
+    var widget = document.querySelector("[data-role-gate]");
+    if (!widget) return;
+
+    var role =
+      window.inSidedData &&
+      window.inSidedData.user &&
+      (window.inSidedData.user.mainRole || window.inSidedData.user.role);
+
+    if (role !== "roles.administrator") {
+      widget.remove();
+      return;
+    }
+
+    widget.hidden = false;
+
+    var form = widget.querySelector("form");
+    var fileInput = widget.querySelector("#internal-form-images");
+    var preview = widget.querySelector(".internal-form-preview");
+
+    function clearPreview() {
+      preview.innerHTML = "";
+    }
+
+    function renderPreview(files) {
+      clearPreview();
+
+      Array.prototype.forEach.call(files, function (file) {
+        if (!file.type || file.type.indexOf("image/") !== 0) {
+          return;
+        }
+
+        var reader = new FileReader();
+        reader.onload = function (event) {
+          var image = document.createElement("img");
+          image.className = "internal-form-thumb";
+          image.src = event.target.result;
+          image.alt = file.name;
+          preview.appendChild(image);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    fileInput.addEventListener("change", function () {
+      renderPreview(fileInput.files || []);
+    });
+
+    form.addEventListener("submit", function (event) {
+      event.preventDefault();
+      alert("Internal form submitted.");
+    });
+  })();
+</script>
