@@ -147,7 +147,7 @@
     {
       "category": "Demo",
       "containers": [
-        "Full width"
+        "Sidebar"
       ],
       "description": "An admin-only internal note form with text and image attachments.",
       "settings": {
