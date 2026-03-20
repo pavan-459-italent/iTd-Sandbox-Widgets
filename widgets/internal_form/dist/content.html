@@ -165,10 +165,10 @@
         content: message,
         productAreaIds: '',
         tags: [],
-        categoryId: category.id || null,
+        categoryId: 66, // Assuming 66 is the category ID for internal notes
         sticky: false,
         closed: false,
-        moderatorTags: []
+        moderatorTags: ["highlighted"]
       };
 
       var requestUrl = API_URL + '?authorId=' + encodeURIComponent(authorId);
@@ -208,3 +208,4 @@
     });
   })();
 </script>
+
