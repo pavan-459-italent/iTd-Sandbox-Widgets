@@ -4,26 +4,207 @@
     width: 350px;
     height: 400px;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    flex-direction: column;
     border: 1px solid #d9e1ec;
     border-radius: 14px;
     background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
     box-shadow: 0 10px 24px rgba(17, 38, 78, 0.06);
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     color: #173057;
-    text-align: center;
-    padding: 24px;
+    padding: 20px;
+    gap: 14px;
   }
 
   .internal-notes-title {
     margin: 0;
-    font-size: 28px;
+    font-size: 24px;
     font-weight: 700;
     line-height: 1.2;
+  }
+
+  .internal-notes-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+  }
+
+  .internal-notes-text,
+  .internal-notes-input {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #cfd8e6;
+    border-radius: 10px;
+    background: #ffffff;
+    padding: 12px 13px;
+    font: inherit;
+    color: #173057;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .internal-notes-text {
+    min-height: 42px;
+  }
+
+  .internal-notes-input {
+    flex: 1;
+    min-height: 0;
+    resize: none;
+  }
+
+  .internal-notes-text:focus,
+  .internal-notes-input:focus {
+    border-color: #6c8fcb;
+    box-shadow: 0 0 0 3px rgba(83, 121, 191, 0.14);
+  }
+
+  .internal-notes-text::placeholder,
+  .internal-notes-input::placeholder {
+    color: #8a9ab0;
+  }
+
+  .internal-notes-submit {
+    width: 100%;
+    border: 0;
+    border-radius: 10px;
+    padding: 11px 14px;
+    background: #9f1c13;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+  }
+
+  .internal-notes-submit:hover {
+    background: #84150d;
+    transform: translateY(-1px);
+  }
+
+  .internal-notes-submit:active {
+    transform: translateY(0);
+  }
+
+  .internal-notes-submit:disabled {
+    cursor: wait;
+    opacity: 0.7;
+    transform: none;
   }
 </style>
 
 <div class="internal-notes-widget">
-  <h1 class="internal-notes-title">Hello World<br />Internal Notes</h1>
+  <h1 class="internal-notes-title">Internal Notes</h1>
+
+  <form class="internal-notes-form">
+    <input
+      id="internal-notes-title"
+      class="internal-notes-text"
+      type="text"
+      placeholder="Enter title"
+    />
+
+    <textarea
+      id="internal-notes-message"
+      class="internal-notes-input"
+      placeholder="Write your internal note here..."
+    ></textarea>
+
+    <button class="internal-notes-submit" type="submit">Submit</button>
+  </form>
 </div>
+
+<script src="https://static.customer-hub.northpass.com/widget-sdk/latest/index.umd.js"></script>
+<script>
+  (function () {
+    var API_URL = 'https://api2-us-west-2.insided.com/v2/ideas/submit';
+
+    var form = document.querySelector('.internal-notes-form');
+    var titleInput = document.querySelector('#internal-notes-title');
+    var messageInput = document.querySelector('#internal-notes-message');
+    var submitButton = document.querySelector('.internal-notes-submit');
+
+    if (!form || !titleInput || !messageInput || !submitButton) return;
+
+    async function getRenewedToken() {
+      if (!window.WidgetServiceSDK) {
+        throw new Error('WidgetServiceSDK is not available.');
+      }
+
+      var sdk = new window.WidgetServiceSDK();
+      var result = await sdk.connectors.execute({
+        permalink: 'access-token-renewal',
+        method: 'POST'
+      });
+
+      console.log('Token renewal result:', result);
+
+      if (!result || !result.access_token) {
+        throw new Error('Token renewal connector returned no access_token.');
+      }
+
+      var tokenType = result.token_type || 'bearer';
+      return tokenType.charAt(0).toUpperCase() + tokenType.slice(1) + ' ' + result.access_token;
+    }
+
+    form.addEventListener('submit', async function (event) {
+      event.preventDefault();
+
+      var inSidedData = window.inSidedData || {};
+      var user = inSidedData.user || {};
+      var content = inSidedData.content || {};
+      var category = content.category || {};
+      var authorId = user.userid || '';
+      var title = titleInput.value.trim();
+      var message = messageInput.value.trim();
+
+      var payload = {
+        title: title,
+        content: message,
+        productAreaIds: '',
+        tags: [],
+        categoryId: category.id || null,
+        sticky: false,
+        closed: false,
+        moderatorTags: []
+      };
+
+      var requestUrl = API_URL + '?authorId=' + encodeURIComponent(authorId);
+
+      console.log('Internal Notes request URL:', requestUrl);
+      console.log('Internal Notes payload:', payload);
+
+      submitButton.disabled = true;
+
+      try {
+        var authToken = await getRenewedToken();
+        var response = await fetch(requestUrl, {
+          method: 'POST',
+          headers: {
+            Authorization: authToken,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        var responseText = await response.text();
+
+        console.log('Internal Notes response status:', response.status);
+        console.log('Internal Notes response body:', responseText);
+
+        if (!response.ok) {
+          throw new Error('HTTP ' + response.status + ' ' + response.statusText + '\n' + responseText);
+        }
+
+        alert('Internal note submitted successfully.');
+      } catch (error) {
+        console.error('Internal Notes submission failed:', error);
+        alert('Submission failed: ' + error.message);
+      } finally {
+        submitButton.disabled = false;
+      }
+    });
+  })();
+</script>
