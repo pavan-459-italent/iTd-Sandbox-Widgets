@@ -87,18 +87,12 @@
   .internal-notes-submit:active {
     transform: translateY(0);
   }
-
-  .internal-notes-submit:disabled {
-    cursor: wait;
-    opacity: 0.7;
-    transform: none;
-  }
 </style>
 
-<div class="internal-notes-widget">
+<div class="internal-notes-widget" data-admin-widget hidden>
   <h1 class="internal-notes-title">Internal Notes</h1>
 
-  <form class="internal-notes-form">
+  <div class="internal-notes-form">
     <input
       id="internal-notes-title"
       class="internal-notes-text"
@@ -112,110 +106,62 @@
       placeholder="Write your internal note here..."
     ></textarea>
 
-    <button class="internal-notes-submit" type="submit">Submit</button>
-  </form>
+    <button class="internal-notes-submit" type="button">Submit</button>
+  </div>
 </div>
 
-<script src="https://static.customer-hub.northpass.com/widget-sdk/latest/index.umd.js"></script>
 <script>
   (function () {
-    var API_URL = 'https://api2-us-west-2.insided.com/v2/ideas/submit';
-
-    var form = document.querySelector('.internal-notes-form');
+    var widget = document.querySelector('[data-admin-widget]');
     var titleInput = document.querySelector('#internal-notes-title');
     var messageInput = document.querySelector('#internal-notes-message');
     var submitButton = document.querySelector('.internal-notes-submit');
 
-    if (!form || !titleInput || !messageInput || !submitButton) return;
+    if (!widget || !titleInput || !messageInput || !submitButton) return;
 
-    async function getRenewedToken() {
-      if (!window.WidgetServiceSDK) {
-        throw new Error('WidgetServiceSDK is not available.');
-      }
+    var inSidedData = window.inSidedData || {};
+    var user = inSidedData.user || {};
+    var role = user.mainRole || user.role;
 
-      var sdk = new window.WidgetServiceSDK();
-      var result = await sdk.connectors.execute({
-        permalink: 'access-token-renewal',
-        method: 'POST'
-      });
-
-      console.log('Token renewal raw response:', result);
-
-      if (!result || !result.access_token) {
-        throw new Error('Token renewal connector returned no access_token.');
-      }
-
-      var tokenType = result.token_type || 'bearer';
-      return tokenType.charAt(0).toUpperCase() + tokenType.slice(1) + ' ' + result.access_token;
+    if (role !== 'roles.administrator') {
+      widget.remove();
+      return;
     }
 
-    form.addEventListener('submit', async function (event) {
+    widget.hidden = false;
+
+    submitButton.addEventListener('click', function (event) {
       event.preventDefault();
       event.stopPropagation();
 
-      var inSidedData = window.inSidedData || {};
-      var user = inSidedData.user || {};
-      var authorId = user.userid || '';
-      var title = titleInput.value.trim();
-      var message = messageInput.value.trim();
-
       var payload = {
-        title: title,
-        content: message,
+        title: titleInput.value.trim(),
+        content: messageInput.value.trim(),
         productAreaIds: '',
         tags: [],
         // categoryId: category.id || 66,
         categoryId: 66,
         sticky: false,
         closed: false,
-        moderatorTags: ["highlighted"]
+        moderatorTags: []
       };
 
-      var requestUrl = API_URL + '?authorId=' + encodeURIComponent(authorId);
+      console.log('Internal Notes local payload:', payload);
 
-      console.log('Internal Notes request URL:', requestUrl);
-      console.log('Internal Notes payload:', payload);
+      // API call intentionally commented out while debugging page refresh behavior.
+      // getRenewedToken()
+      //   .then(function (authToken) {
+      //     return fetch(requestUrl, {
+      //       method: 'POST',
+      //       headers: {
+      //         Authorization: authToken,
+      //         'Content-Type': 'application/json'
+      //       },
+      //       body: JSON.stringify(payload)
+      //     });
+      //   });
 
-      submitButton.disabled = true;
-
-      try {
-        var authToken = await getRenewedToken();
-        console.log('Authorization header prepared from renewed token.');
-
-        var response = await fetch(requestUrl, {
-          method: 'POST',
-          headers: {
-            Authorization: authToken,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(payload)
-        });
-
-        var responseText = await response.text();
-        var responseBody = responseText;
-
-        try {
-          responseBody = responseText ? JSON.parse(responseText) : null;
-        } catch (parseError) {
-          responseBody = responseText;
-        }
-
-        console.log('Idea submit response status:', response.status);
-        console.log('Idea submit response ok:', response.ok);
-        console.log('Idea submit response headers:', Object.fromEntries(response.headers.entries()));
-        console.log('Idea submit response body:', responseBody);
-
-        if (!response.ok) {
-          throw new Error('HTTP ' + response.status + ' ' + response.statusText + '\n' + responseText);
-        }
-
-        alert('Internal note submitted successfully.');
-      } catch (error) {
-        console.error('Internal Notes submission failed:', error);
-        alert('Submission failed: ' + error.message);
-      } finally {
-        submitButton.disabled = false;
-      }
+      alert('Submit clicked. API call is currently disabled for debugging.');
     });
   })();
 </script>
