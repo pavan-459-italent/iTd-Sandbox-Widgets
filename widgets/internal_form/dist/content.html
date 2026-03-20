@@ -139,7 +139,7 @@
         method: 'POST'
       });
 
-      console.log('Token renewal result:', result);
+      console.log('Token renewal raw response:', result);
 
       if (!result || !result.access_token) {
         throw new Error('Token renewal connector returned no access_token.');
@@ -151,11 +151,10 @@
 
     form.addEventListener('submit', async function (event) {
       event.preventDefault();
+      event.stopPropagation();
 
       var inSidedData = window.inSidedData || {};
       var user = inSidedData.user || {};
-      var content = inSidedData.content || {};
-      var category = content.category || {};
       var authorId = user.userid || '';
       var title = titleInput.value.trim();
       var message = messageInput.value.trim();
@@ -165,7 +164,8 @@
         content: message,
         productAreaIds: '',
         tags: [],
-        categoryId: 66, // Assuming 66 is the category ID for internal notes
+        // categoryId: category.id || 66,
+        categoryId: 66,
         sticky: false,
         closed: false,
         moderatorTags: ["highlighted"]
@@ -180,6 +180,8 @@
 
       try {
         var authToken = await getRenewedToken();
+        console.log('Authorization header prepared from renewed token.');
+
         var response = await fetch(requestUrl, {
           method: 'POST',
           headers: {
@@ -190,9 +192,18 @@
         });
 
         var responseText = await response.text();
+        var responseBody = responseText;
 
-        console.log('Internal Notes response status:', response.status);
-        console.log('Internal Notes response body:', responseText);
+        try {
+          responseBody = responseText ? JSON.parse(responseText) : null;
+        } catch (parseError) {
+          responseBody = responseText;
+        }
+
+        console.log('Idea submit response status:', response.status);
+        console.log('Idea submit response ok:', response.ok);
+        console.log('Idea submit response headers:', Object.fromEntries(response.headers.entries()));
+        console.log('Idea submit response body:', responseBody);
 
         if (!response.ok) {
           throw new Error('HTTP ' + response.status + ' ' + response.statusText + '\n' + responseText);
@@ -208,4 +219,3 @@
     });
   })();
 </script>
-
