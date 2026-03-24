@@ -110,23 +110,25 @@
   </div>
 </div>
 
-<script>
-  (function () {
-    var widget = document.querySelector('[data-admin-widget]');
-    var titleInput = document.querySelector('#internal-notes-title');
-    var messageInput = document.querySelector('#internal-notes-message');
-    var submitButton = document.querySelector('.internal-notes-submit');
+<script type="module">
+  export async function init(sdk) {
+    await sdk.whenReady();
 
-    if (!widget || !titleInput || !messageInput || !submitButton) return;
+    var widget = sdk.root.querySelector('[data-admin-widget]');
+    var titleInput = sdk.root.querySelector('#internal-notes-title');
+    var messageInput = sdk.root.querySelector('#internal-notes-message');
+    var submitButton = sdk.root.querySelector('.internal-notes-submit');
 
     var inSidedData = window.inSidedData || {};
     var user = inSidedData.user || {};
     var role = user.mainRole || user.role;
 
-    if (role !== 'roles.administrator') {
-      widget.remove();
-      return;
-    }
+    if (!widget || !titleInput || !messageInput || !submitButton) return;
+
+    // if (role !== 'roles.administrator') {
+    //   widget.remove();
+    //   return;
+    // }
 
     widget.hidden = false;
 
@@ -163,5 +165,5 @@
 
       alert('Submit clicked. API call is currently disabled for debugging.');
     });
-  })();
+  }
 </script>
