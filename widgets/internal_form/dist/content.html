@@ -141,7 +141,7 @@
     console.log('inSidedData:', inSidedData);
     var user = inSidedData.user || {};
     console.log('User data:', user);
-    var role = user.mainRole || user.role;
+    var role = user.mainRole;
     console.log('User role:', role);
      /* 
     if (role !== 'roles.administrator') {
@@ -153,6 +153,7 @@
     widget.hidden = false;
 
     /*
+    */
     async function getRenewedToken() {
       var result = await sdk.connectors.execute({
         permalink: 'access-token-renewal',
@@ -168,7 +169,6 @@
       var tokenType = result.token_type || 'bearer';
       return tokenType.charAt(0).toUpperCase() + tokenType.slice(1) + ' ' + result.access_token;
     }
-    */
 
     submitButton.addEventListener('click', function (event) {
       event.preventDefault();
@@ -192,15 +192,16 @@
       
       console.log('Internal Notes request URL:', requestUrl);
       /*
+      */
       console.log('Internal Notes payload:', payload);
 
       submitButton.disabled = true;
 
       try {
-        var authToken = await getRenewedToken();
+        var authToken =  getRenewedToken();
         console.log('Authorization header prepared from renewed token.');
 
-        var response = await fetch(requestUrl, {
+        var response =  fetch(requestUrl, {
           method: 'POST',
           headers: {
             Authorization: authToken,
@@ -209,7 +210,7 @@
           body: JSON.stringify(payload)
         });
 
-        var responseText = await response.text();
+        var responseText =  response.text();
         var responseBody = responseText;
 
         try {
@@ -234,7 +235,6 @@
       } finally {
         submitButton.disabled = false;
       }
-      */
 
       alert('Submit clicked. API logic is commented out.');
     });
