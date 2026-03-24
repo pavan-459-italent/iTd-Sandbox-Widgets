@@ -131,7 +131,7 @@
     console.log('querySelector #internal-notes-title:', titleInput);
     console.log('querySelector #internal-notes-message:', messageInput);
     console.log('querySelector .internal-notes-submit:', submitButton);
-    
+
     if (!widget || !titleInput || !messageInput || !submitButton) {
       console.warn('One or more sdk.root querySelector calls returned null.');
       return;
@@ -143,34 +143,66 @@
     console.log('User data:', user);
     var role = user.mainRole;
     console.log('User role:', role);
-     /* 
+    /*
     if (role !== 'roles.administrator') {
       widget.remove();
       return;
     }
-      */
+    */
 
     widget.hidden = false;
 
-    /*
-    */
+    var cachedToken = null;
+    var cachedTokenExpiresAt = 0;
+    var pendingTokenPromise = null;
+
     async function getRenewedToken() {
-      var result = await sdk.connectors.execute({
-        permalink: 'access-token-renewal',
-        method: 'POST'
-      });
+      var now = Date.now();
 
-      console.log('Token renewal raw response:', result);
-
-      if (!result || !result.access_token) {
-        throw new Error('Token renewal connector returned no access_token.');
+      if (cachedToken && cachedTokenExpiresAt > now) {
+        console.log('Using cached access token. Expires at:', new Date(cachedTokenExpiresAt).toISOString());
+        return cachedToken;
       }
 
-      var tokenType = result.token_type || 'bearer';
-      return tokenType.charAt(0).toUpperCase() + tokenType.slice(1) + ' ' + result.access_token;
+      if (pendingTokenPromise) {
+        console.log('Token renewal already in progress. Waiting for existing promise.');
+        return pendingTokenPromise;
+      }
+
+      pendingTokenPromise = (async function () {
+        var result = await sdk.connectors.execute({
+          permalink: 'access-token-renewal',
+          method: 'POST'
+        });
+
+        console.log('Token renewal raw response:', result);
+
+        if (!result || !result.access_token) {
+          throw new Error('Token renewal connector returned no access_token.');
+        }
+
+        var tokenType = result.token_type || 'bearer';
+        var expiresInSeconds = Number(result.expires_in || 0);
+        var tokenValue = tokenType.charAt(0).toUpperCase() + tokenType.slice(1) + ' ' + result.access_token;
+        var expiresAt = Date.now() + Math.max(expiresInSeconds - 60, 0) * 1000;
+
+        cachedToken = tokenValue;
+        cachedTokenExpiresAt = expiresAt;
+
+        console.log('New token generated:', tokenValue);
+        console.log('New token expires at:', new Date(cachedTokenExpiresAt).toISOString());
+
+        return cachedToken;
+      })();
+
+      try {
+        return await pendingTokenPromise;
+      } finally {
+        pendingTokenPromise = null;
+      }
     }
 
-    submitButton.addEventListener('click', function (event) {
+    submitButton.addEventListener('click', async function (event) {
       event.preventDefault();
       event.stopPropagation();
 
@@ -186,22 +218,18 @@
         moderatorTags: []
       };
 
-      console.log('Internal Notes local payload:', payload);
+      var requestUrl = 'https://api2-us-west-2.insided.com/v2/ideas/submit?authorId=' + encodeURIComponent(user.userid || '');
 
-      var requestUrl = 'https://api2-us-west-2.insided.com/v2/ideas/submit?authorId=' + encodeURIComponent(user.userid);
-      
       console.log('Internal Notes request URL:', requestUrl);
-      /*
-      */
       console.log('Internal Notes payload:', payload);
 
       submitButton.disabled = true;
 
       try {
-        var authToken =  getRenewedToken();
+        var authToken = await getRenewedToken();
         console.log('Authorization header prepared from renewed token.');
 
-        var response =  fetch(requestUrl, {
+        var response = await fetch(requestUrl, {
           method: 'POST',
           headers: {
             Authorization: authToken,
@@ -209,8 +237,9 @@
           },
           body: JSON.stringify(payload)
         });
+        console.log('Fetch completed for idea submission.');
 
-        var responseText =  response.text();
+        var responseText = await response.text();
         var responseBody = responseText;
 
         try {
@@ -235,8 +264,6 @@
       } finally {
         submitButton.disabled = false;
       }
-
-      alert('Submit clicked. API logic is commented out.');
     });
   }
 </script>
