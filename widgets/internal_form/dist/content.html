@@ -138,8 +138,11 @@
     }
 
     var inSidedData = window.inSidedData || {};
+    console.log('inSidedData:', inSidedData);
     var user = inSidedData.user || {};
+    console.log('User data:', user);
     var role = user.mainRole || user.role;
+    console.log('User role:', role);
      /* 
     if (role !== 'roles.administrator') {
       widget.remove();
