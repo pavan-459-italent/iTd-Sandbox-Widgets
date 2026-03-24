@@ -120,23 +120,36 @@
   export async function init(sdk) {
     await sdk.whenReady();
 
+    console.log('sdk.root:', sdk.root);
+
     var widget = sdk.root.querySelector('[data-admin-widget]');
     var titleInput = sdk.root.querySelector('#internal-notes-title');
     var messageInput = sdk.root.querySelector('#internal-notes-message');
     var submitButton = sdk.root.querySelector('.internal-notes-submit');
 
-    if (!widget || !titleInput || !messageInput || !submitButton) return;
-
-    var inSidedData = window.inSidedData;
-    var user = inSidedData.user;
-    var role = user.mainRole || user.role;
-
-    if (role !== 'roles.administrator') {
+    console.log('querySelector [data-admin-widget]:', widget);
+    console.log('querySelector #internal-notes-title:', titleInput);
+    console.log('querySelector #internal-notes-message:', messageInput);
+    console.log('querySelector .internal-notes-submit:', submitButton);
+    
+    if (!widget || !titleInput || !messageInput || !submitButton) {
+      console.warn('One or more sdk.root querySelector calls returned null.');
       return;
     }
 
+    var inSidedData = window.inSidedData || {};
+    var user = inSidedData.user || {};
+    var role = user.mainRole || user.role;
+     /* 
+    if (role !== 'roles.administrator') {
+      widget.remove();
+      return;
+    }
+      */
+
     widget.hidden = false;
 
+    /*
     async function getRenewedToken() {
       var result = await sdk.connectors.execute({
         permalink: 'access-token-renewal',
@@ -152,8 +165,9 @@
       var tokenType = result.token_type || 'bearer';
       return tokenType.charAt(0).toUpperCase() + tokenType.slice(1) + ' ' + result.access_token;
     }
+    */
 
-    submitButton.addEventListener('click', async function (event) {
+    submitButton.addEventListener('click', function (event) {
       event.preventDefault();
       event.stopPropagation();
 
@@ -169,6 +183,9 @@
         moderatorTags: []
       };
 
+      console.log('Internal Notes local payload:', payload);
+
+      /*
       var requestUrl = 'https://api2-us-west-2.insided.com/v2/ideas/submit?authorId=' + encodeURIComponent(user.userid || '');
 
       console.log('Internal Notes request URL:', requestUrl);
@@ -214,6 +231,9 @@
       } finally {
         submitButton.disabled = false;
       }
+      */
+
+      alert('Submit clicked. API logic is commented out.');
     });
   }
 </script>
