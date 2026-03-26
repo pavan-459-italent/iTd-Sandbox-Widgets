@@ -121,7 +121,7 @@
     await sdk.whenReady();
 
     console.log('sdk.root:', sdk.root);
-
+    console.log("SDK modules:", sdk);
     var widget = sdk.root.querySelector('[data-admin-widget]');
     var titleInput = sdk.root.querySelector('#internal-notes-title');
     var messageInput = sdk.root.querySelector('#internal-notes-message');
