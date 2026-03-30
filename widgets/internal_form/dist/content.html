@@ -142,6 +142,7 @@
   </div>
 </div>
 
+<script src="https://static.customer-hub.northpass.com/widget-sdk/latest/index.umd.js"></script>
 <script type="module">
   export async function init(sdk) {
     await sdk.whenReady();
@@ -151,8 +152,15 @@
     var messageInput = sdk.root.querySelector("#internal-notes-message");
     var statusNode = sdk.root.querySelector("[data-status]");
     var submitButton = sdk.root.querySelector(".internal-notes-submit");
+    var connectorsSDK =
+      typeof window.WidgetServiceSDK === "function" ? new window.WidgetServiceSDK() : null;
 
     if (!widget || !titleInput || !messageInput || !statusNode || !submitButton) {
+      return;
+    }
+
+    if (!connectorsSDK || !connectorsSDK.connectors || typeof connectorsSDK.connectors.execute !== "function") {
+      setStatus("Connector SDK is unavailable on this page.", "error");
       return;
     }
 
@@ -191,7 +199,7 @@
       }
 
       pendingTokenPromise = (async function () {
-        var result = await sdk.connectors.execute({
+        var result = await connectorsSDK.connectors.execute({
           permalink: "access-token-renewal",
           method: "POST"
         });
