@@ -1,0 +1,23 @@
+{
+  "connectors": [
+    {
+      "name": "Access Token Renewal",
+      "url": "https://api2-us-west-2.insided.com/oauth2/token",
+      "method": "POST",
+      "headers": [
+        {
+          "key": "Accept",
+          "value": "application/json",
+          "overridable": false
+        },
+        {
+          "key": "Content-Type",
+          "value": "application/x-www-form-urlencoded",
+          "overridable": false
+        }
+      ],
+      "request_body": "grant_type=client_credentials&client_id={{ get_secret('internal_notes_client_id') | urlencode }}&client_secret={{ get_secret('internal_notes_client_secret') | urlencode }}&scope={{ get_secret('internal_notes_scope') | urlencode }}",
+      "permalink": "access-token-renewal"
+    }
+  ]
+}

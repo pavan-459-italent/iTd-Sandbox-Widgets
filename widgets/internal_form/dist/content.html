@@ -1,0 +1,288 @@
+<style>
+  .internal-notes-widget {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 420px;
+    min-height: 420px;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #d9e1ec;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+    box-shadow: 0 10px 24px rgba(17, 38, 78, 0.06);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: #173057;
+    padding: 20px;
+    gap: 14px;
+  }
+
+  .internal-notes-title {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+
+  .internal-notes-copy {
+    margin: 0;
+    color: #5d6f8a;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .internal-notes-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+  }
+
+  .internal-notes-text,
+  .internal-notes-input {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #cfd8e6;
+    border-radius: 10px;
+    background: #ffffff;
+    padding: 12px 13px;
+    font: inherit;
+    color: #173057;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .internal-notes-text {
+    min-height: 42px;
+  }
+
+  .internal-notes-input {
+    flex: 1;
+    min-height: 180px;
+    resize: vertical;
+  }
+
+  .internal-notes-text:focus,
+  .internal-notes-input:focus {
+    border-color: #6c8fcb;
+    box-shadow: 0 0 0 3px rgba(83, 121, 191, 0.14);
+  }
+
+  .internal-notes-text::placeholder,
+  .internal-notes-input::placeholder {
+    color: #8a9ab0;
+  }
+
+  .internal-notes-status {
+    min-height: 20px;
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #5d6f8a;
+  }
+
+  .internal-notes-status[data-tone="error"] {
+    color: #9f1c13;
+  }
+
+  .internal-notes-status[data-tone="success"] {
+    color: #1d6b3d;
+  }
+
+  .internal-notes-submit {
+    width: 100%;
+    border: 0;
+    border-radius: 10px;
+    padding: 11px 14px;
+    background: #9f1c13;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+  }
+
+  .internal-notes-submit:hover {
+    background: #84150d;
+    transform: translateY(-1px);
+  }
+
+  .internal-notes-submit:active {
+    transform: translateY(0);
+  }
+
+  .internal-notes-submit:disabled {
+    cursor: wait;
+    opacity: 0.7;
+    transform: none;
+  }
+</style>
+
+<div class="internal-notes-widget" data-admin-widget hidden>
+  <h1 class="internal-notes-title">Internal Notes</h1>
+  <p class="internal-notes-copy">Create a private note as an idea entry for internal moderation workflows.</p>
+
+  <div class="internal-notes-form">
+    <input
+      id="internal-notes-title"
+      class="internal-notes-text"
+      type="text"
+      placeholder="Enter title"
+    />
+
+    <textarea
+      id="internal-notes-message"
+      class="internal-notes-input"
+      placeholder="Write your internal note here..."
+    ></textarea>
+
+    <p class="internal-notes-status" data-status></p>
+    <button class="internal-notes-submit" type="button">Submit</button>
+  </div>
+</div>
+
+<script type="module">
+  export async function init(sdk) {
+    await sdk.whenReady();
+
+    var widget = sdk.root.querySelector("[data-admin-widget]");
+    var titleInput = sdk.root.querySelector("#internal-notes-title");
+    var messageInput = sdk.root.querySelector("#internal-notes-message");
+    var statusNode = sdk.root.querySelector("[data-status]");
+    var submitButton = sdk.root.querySelector(".internal-notes-submit");
+
+    if (!widget || !titleInput || !messageInput || !statusNode || !submitButton) {
+      return;
+    }
+
+    var inSidedData = window.inSidedData || {};
+    var user = inSidedData.user || {};
+    var role = user.mainRole;
+
+    if (role !== "roles.administrator") {
+      return;
+    }
+
+    widget.hidden = false;
+
+    var cachedToken = null;
+    var cachedTokenExpiresAt = 0;
+    var pendingTokenPromise = null;
+
+    function setStatus(message, tone) {
+      statusNode.textContent = message || "";
+      if (tone) {
+        statusNode.setAttribute("data-tone", tone);
+      } else {
+        statusNode.removeAttribute("data-tone");
+      }
+    }
+
+    async function getRenewedToken() {
+      var now = Date.now();
+
+      if (cachedToken && cachedTokenExpiresAt > now) {
+        return cachedToken;
+      }
+
+      if (pendingTokenPromise) {
+        return pendingTokenPromise;
+      }
+
+      pendingTokenPromise = (async function () {
+        var result = await sdk.connectors.execute({
+          permalink: "access-token-renewal",
+          method: "POST"
+        });
+
+        if (!result || !result.access_token) {
+          throw new Error("Token renewal connector returned no access_token.");
+        }
+
+        var tokenType = result.token_type || "bearer";
+        var expiresInSeconds = Number(result.expires_in || 0);
+        var tokenValue =
+          tokenType.charAt(0).toUpperCase() + tokenType.slice(1) + " " + result.access_token;
+
+        cachedToken = tokenValue;
+        cachedTokenExpiresAt = Date.now() + Math.max(expiresInSeconds - 60, 0) * 1000;
+
+        return cachedToken;
+      })();
+
+      try {
+        return await pendingTokenPromise;
+      } finally {
+        pendingTokenPromise = null;
+      }
+    }
+
+    async function submitInternalNote() {
+      var title = titleInput.value.trim();
+      var content = messageInput.value.trim();
+
+      if (!title || !content) {
+        setStatus("Title and note content are required.", "error");
+        return;
+      }
+
+      var authorId = user.userid || user.id || "";
+      if (!authorId) {
+        setStatus("Unable to resolve the current user ID.", "error");
+        return;
+      }
+
+      var payload = {
+        title: title,
+        content: content,
+        productAreaIds: "",
+        tags: [],
+        categoryId: 66,
+        sticky: false,
+        closed: false,
+        moderatorTags: []
+      };
+
+      var requestUrl =
+        "https://api2-us-west-2.insided.com/v2/ideas/submit?authorId=" +
+        encodeURIComponent(authorId);
+
+      submitButton.disabled = true;
+      setStatus("Submitting internal note...", null);
+
+      try {
+        var authToken = await getRenewedToken();
+
+        var response = await fetch(requestUrl, {
+          method: "POST",
+          headers: {
+            Authorization: authToken,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        var responseText = await response.text();
+        if (!response.ok) {
+          throw new Error("HTTP " + response.status + " " + response.statusText + "\n" + responseText);
+        }
+
+        titleInput.value = "";
+        messageInput.value = "";
+        setStatus("Internal note submitted successfully.", "success");
+      } catch (error) {
+        var message = error && error.message ? error.message : "Unknown error";
+        setStatus("Submission failed: " + message, "error");
+      } finally {
+        submitButton.disabled = false;
+      }
+    }
+
+    submitButton.addEventListener("click", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      submitInternalNote();
+    });
+  }
+</script>

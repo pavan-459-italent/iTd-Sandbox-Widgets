@@ -1,0 +1,13 @@
+{
+  "version": "1.0.0",
+  "title": "Internal Form",
+  "description": "An admin-only internal note form with secure token renewal via connector.",
+  "category": "Demo",
+  "source": {
+    "path": "dist",
+    "entry": "content.html"
+  },
+  "settings": {
+    "movable": false
+  }
+}
