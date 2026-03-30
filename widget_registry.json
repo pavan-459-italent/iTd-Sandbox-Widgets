@@ -189,6 +189,28 @@
         "entry": "index.html"
       },
       "imageSrc": "widgets/react_widget/thumbnail.png"
+    },
+    {
+      "category": "Internal_notes",
+      "containers": [
+        "Sidebar"
+      ],
+      "description": "An admin-only internal note form with secure token renewal via connector.",
+      "settings": {
+        "configurable": true,
+        "editable": true,
+        "removable": true,
+        "shared": false,
+        "movable": false
+      },
+      "title": "Internal Form",
+      "version": "1.0.0",
+      "widgetsLibrary": true,
+      "type": "internal_form",
+      "source": {
+        "path": "widgets/internal_form/dist",
+        "entry": "content.html"
+      }
     }
   ],
   "stylesheets": [
