@@ -168,11 +168,6 @@
       }
     }
 
-    if (!connectorsSDK || !connectorsSDK.connectors || typeof connectorsSDK.connectors.execute !== "function") {
-      setStatus("Connector SDK is unavailable on this page.", "error");
-      return;
-    }
-
     var inSidedData = window.inSidedData || {};
     var user = inSidedData.user || {};
     var role = user.mainRole;
@@ -207,16 +202,48 @@
       setStatus("Submitting internal note...", null);
 
       try {
+        /*
+        if (!connectorsSDK || !connectorsSDK.connectors || typeof connectorsSDK.connectors.execute !== "function") {
+          throw new Error("Connector SDK is unavailable on this page.");
+        }
+
         var result = await connectorsSDK.connectors.execute({
           permalink: "post-idea-internal-notes",
           method: "POST",
           body: JSON.stringify(payload)
         });
+        */
+
+        var response = await fetch(
+          "https://italent-us-community.insided.com/widget-service/connectors/post-idea-internal-notes/execute",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+          }
+        );
+
+        var responseText = await response.text();
+        var responseBody = responseText;
+
+        try {
+          responseBody = responseText ? JSON.parse(responseText) : null;
+        } catch (parseError) {
+          responseBody = responseText;
+        }
+
+        if (!response.ok) {
+          throw new Error(
+            "HTTP " + response.status + " " + response.statusText + "\n" + JSON.stringify(responseBody)
+          );
+        }
 
         titleInput.value = "";
         messageInput.value = "";
         setStatus("Internal note submitted successfully.", "success");
-        console.log(result);
+        console.log(responseBody);
       } catch (error) {
         var message = error && error.message ? error.message : "Unknown error";
         setStatus("Submission failed: " + message, "error");
