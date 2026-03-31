@@ -159,6 +159,15 @@
       return;
     }
 
+    function setStatus(message, tone) {
+      statusNode.textContent = message || "";
+      if (tone) {
+        statusNode.setAttribute("data-tone", tone);
+      } else {
+        statusNode.removeAttribute("data-tone");
+      }
+    }
+
     if (!connectorsSDK || !connectorsSDK.connectors || typeof connectorsSDK.connectors.execute !== "function") {
       setStatus("Connector SDK is unavailable on this page.", "error");
       return;
@@ -174,70 +183,12 @@
 
     widget.hidden = false;
 
-    var cachedToken = null;
-    var cachedTokenExpiresAt = 0;
-    var pendingTokenPromise = null;
-
-    function setStatus(message, tone) {
-      statusNode.textContent = message || "";
-      if (tone) {
-        statusNode.setAttribute("data-tone", tone);
-      } else {
-        statusNode.removeAttribute("data-tone");
-      }
-    }
-
-    async function getRenewedToken() {
-      var now = Date.now();
-
-      if (cachedToken && cachedTokenExpiresAt > now) {
-        return cachedToken;
-      }
-
-      if (pendingTokenPromise) {
-        return pendingTokenPromise;
-      }
-
-      pendingTokenPromise = (async function () {
-        var result = await connectorsSDK.connectors.execute({
-          permalink: "access-token-renewal",
-          method: "POST"
-        });
-
-        if (!result || !result.access_token) {
-          throw new Error("Token renewal connector returned no access_token.");
-        }
-
-        var tokenType = result.token_type || "bearer";
-        var expiresInSeconds = Number(result.expires_in || 0);
-        var tokenValue =
-          tokenType.charAt(0).toUpperCase() + tokenType.slice(1) + " " + result.access_token;
-
-        cachedToken = tokenValue;
-        cachedTokenExpiresAt = Date.now() + Math.max(expiresInSeconds - 60, 0) * 1000;
-
-        return cachedToken;
-      })();
-
-      try {
-        return await pendingTokenPromise;
-      } finally {
-        pendingTokenPromise = null;
-      }
-    }
-
     async function submitInternalNote() {
       var title = titleInput.value.trim();
       var content = messageInput.value.trim();
 
       if (!title || !content) {
         setStatus("Title and note content are required.", "error");
-        return;
-      }
-
-      var authorId = user.userid || user.id || "";
-      if (!authorId) {
-        setStatus("Unable to resolve the current user ID.", "error");
         return;
       }
 
@@ -252,33 +203,20 @@
         moderatorTags: []
       };
 
-      var requestUrl =
-        "https://api2-us-west-2.insided.com/v2/ideas/submit?authorId=" +
-        encodeURIComponent(authorId);
-
       submitButton.disabled = true;
       setStatus("Submitting internal note...", null);
 
       try {
-        var authToken = await getRenewedToken();
-
-        var response = await fetch(requestUrl, {
+        var result = await connectorsSDK.connectors.execute({
+          permalink: "post-idea-internal-notes",
           method: "POST",
-          headers: {
-            Authorization: authToken,
-            "Content-Type": "application/json"
-          },
           body: JSON.stringify(payload)
         });
-
-        var responseText = await response.text();
-        if (!response.ok) {
-          throw new Error("HTTP " + response.status + " " + response.statusText + "\n" + responseText);
-        }
 
         titleInput.value = "";
         messageInput.value = "";
         setStatus("Internal note submitted successfully.", "success");
+        console.log(result);
       } catch (error) {
         var message = error && error.message ? error.message : "Unknown error";
         setStatus("Submission failed: " + message, "error");
