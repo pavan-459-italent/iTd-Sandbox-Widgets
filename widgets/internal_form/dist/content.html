@@ -171,7 +171,7 @@
     var inSidedData = window.inSidedData || {};
     var user = inSidedData.user || {};
     var role = user.mainRole || '';
-    var userId = user.userid || '';
+    console.log("User id:", user.userid);
 
     if (role !== "roles.administrator") {
       return;
@@ -212,7 +212,7 @@
           method: "POST",
           payload: payload,
           queryparams: {
-            userId: user.id
+            authorId : user.userid
           }
         });
 
