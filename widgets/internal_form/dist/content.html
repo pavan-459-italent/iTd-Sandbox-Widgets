@@ -171,8 +171,8 @@
     var inSidedData = window.inSidedData || {};
     var user = inSidedData.user || {};
     var role = user.mainRole || '';
-    console.log("User id:", user.userid);
-
+    console.log("User id>>>>>>>>>", user.userid);
+     console.log("number user id>>>>>>>>>", Number(user.userid));
     if (role !== "roles.administrator") {
       return;
     }
@@ -247,7 +247,7 @@
         titleInput.value = "";
         messageInput.value = "";
         setStatus("Internal note submitted successfully.", "success");
-        console.log(result);
+        console.log(result, "Internal note submission result");
       } catch (error) {
         var message = error && error.message ? error.message : "Unknown error";
         setStatus("Submission failed: " + message, "error");
