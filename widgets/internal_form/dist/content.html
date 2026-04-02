@@ -170,7 +170,8 @@
 
     var inSidedData = window.inSidedData || {};
     var user = inSidedData.user || {};
-    var role = user.mainRole;
+    var role = user.mainRole || '';
+    var userId = user.userid || '';
 
     if (role !== "roles.administrator") {
       return;
@@ -209,7 +210,10 @@
         var result = await connectorsSDK.connectors.execute({
           permalink: "post-idea-internal-notes",
           method: "POST",
-          payload: payload
+          payload: payload,
+          queryparams: {
+            userId: user.id
+          }
         });
 
         /*
