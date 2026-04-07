@@ -171,10 +171,11 @@
     var inSidedData = window.inSidedData || {};
     var user = inSidedData.user || {};
     var role = user.mainRole || '';
-    console.log("User id>>>>>>>>>", user.userid);
-     console.log("number user id>>>>>>>>>", Number(user.userid));
+    console.log("logs from internal form widget, ")
+    // console.log("User id>>>>>>>>>", user.userid);
+    // console.log("number user id>>>>>>>>>", Number(user.userid));
     if (role !== "roles.administrator") {
-      <!-- widget.textContent = "You do not have permission to view this widget."; -->
+       widget.textContent = "You do not have permission to view this widget.";
       return;
     }
 
@@ -212,12 +213,12 @@
           permalink: "post-idea-internal-notes",
           method: "POST",
           payload: payload,
-          queryParams: {
-            authorId : Number(user.userid)
-          }
         });
-
+        
         /*
+        queryParams: {
+          authorId : Number(user.userid)
+        }
         var response = await fetch(
           "https://italent-us-community.insided.com/widget-service/connectors/post-idea-internal-notes/execute",
           {
